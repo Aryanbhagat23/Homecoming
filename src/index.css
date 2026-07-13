@@ -1,1 +1,36 @@
-@import "tailwindcss";
+:root {
+  --ink: #23261F;
+  --paper: #F5F1E8;
+  --card: #FFFFFF;
+  --verify: #3A6B4C;
+  --verify-bg: #EAF1EA;
+  --attend: #A66B00;
+  --attend-bg: #F6EDDA;
+  --flag: #9B3B2E;
+  --flag-bg: #F3E3DF;
+  --cite: #6B7280;
+  --border: #E0DACE;
+
+  --font-display: 'Newsreader', Georgia, serif;
+  --font-body: 'Public Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes stamp-in {
+    0%   { transform: scale(1.4) rotate(-8deg); opacity: 0; }
+    60%  { transform: scale(0.92) rotate(2deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  .stamp { animation: stamp-in 0.4s cubic-bezier(.2,.8,.3,1); }
+}
