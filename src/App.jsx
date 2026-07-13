@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext.jsx'
 import { useCircle } from './useCircle.js'
 import Login from './Login.jsx'
+import Landing from './Landing.jsx'
 import FridgeSheet from './FridgeSheet.jsx'
 import { extractPdfPages } from './pdfText.js'
 import { downloadFhir } from './fhir.js'
@@ -16,6 +17,7 @@ export default function App() {
   const { session, loading: authLoading } = useAuth()
   const { circleId, loading: circleLoading } = useCircle(session)
 
+  const [showLogin, setShowLogin] = useState(false)   // landing -> login toggle for logged-out users
   const [text, setText] = useState(SAMPLE)
   const [candidates, setCandidates] = useState([])
   const [plan, setPlan] = useState([])
@@ -25,6 +27,8 @@ export default function App() {
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState('')
   const [showFridge, setShowFridge] = useState(false)
+  const [reminderFor, setReminderFor] = useState(null)
+  const [reminderWhen, setReminderWhen] = useState('')
 
   useEffect(() => { if (circleId) { loadPlan(); loadReminders() } }, [circleId])
 
@@ -33,7 +37,6 @@ export default function App() {
       .eq('circle_id', circleId).order('confirmed_at', { ascending: false })
     if (data) setPlan(data)
   }
-
   async function loadReminders() {
     const { data } = await supabase.from('reminders').select('*')
       .eq('circle_id', circleId).order('remind_at', { ascending: true })
@@ -41,7 +44,12 @@ export default function App() {
   }
 
   if (authLoading) return <Center>Loading…</Center>
-  if (!session) return <Login />
+  // Logged out: show landing first, then login when they choose to
+  if (!session) {
+    return showLogin
+      ? <Login onBack={() => setShowLogin(false)} />
+      : <Landing onGetStarted={() => setShowLogin(true)} />
+  }
   if (circleLoading) return <Center>Setting up your care circle…</Center>
 
   async function handleExtract() {
@@ -79,6 +87,32 @@ export default function App() {
     setLoading(false)
   }
 
+  async function handleImageUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLoading(true); setError(''); setCandidates([])
+    try {
+      // read the image as base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result.split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+      const res = await fetch('/.netlify/functions/extract', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ image: { media_type: file.type, data: base64 } }),
+      })
+      const data = await res.json()
+      if (data.error) setError("Couldn't read this image. Try a clearer photo of a discharge document.")
+      else if ((data.items || []).length === 0) setError("No medications, appointments, or tasks found in this photo.")
+      else setCandidates((data.items || []).map((it, i) => ({ ...it, _id: 'c' + i })))
+    } catch (err) {
+      setError('Could not read image: ' + String(err))
+    }
+    setLoading(false)
+  }
+
   async function confirmItem(item) {
     const { error } = await supabase.from('plan_items').insert({
       circle_id: circleId, confirmed_by: session.user.id,
@@ -90,17 +124,16 @@ export default function App() {
     loadPlan()
   }
 
-  async function addReminder(planItem) {
-    const when = prompt('Remind me at (YYYY-MM-DD HH:MM), e.g. 2026-07-20 09:00')
-    if (!when) return
-    const remind_at = new Date(when.replace(' ', 'T'))
-    if (isNaN(remind_at)) { setError('Could not understand that date/time.'); return }
+  async function saveReminder() {
+    if (!reminderWhen) { setError('Please pick a date and time.'); return }
+    const remind_at = new Date(reminderWhen)
+    if (isNaN(remind_at)) { setError('That date/time did not work.'); return }
     const { error } = await supabase.from('reminders').insert({
-      plan_item_id: planItem.id, circle_id: circleId,
+      plan_item_id: reminderFor.id, circle_id: circleId,
       remind_at: remind_at.toISOString(), channel: 'in_app',
     })
     if (error) { setError('Could not save reminder: ' + error.message); return }
-    loadReminders()
+    setReminderFor(null); setReminderWhen(''); loadReminders()
   }
 
   const rejectItem = (item) => setCandidates((c) => c.filter((x) => x._id !== item._id))
@@ -110,8 +143,8 @@ export default function App() {
       ? { ...x, payload: { ...x.payload, plain_language: editText } } : x))
     setEditingId(null)
   }
-
   const stateOf = (i) => i.confidence === 'low' ? 'attend' : i.category === 'warning' ? 'flag' : 'verify'
+  const userName = session.user?.user_metadata?.first_name
 
   return (
     <div style={{ minHeight: '100vh', background: v('paper'), color: v('ink') }}>
@@ -119,7 +152,9 @@ export default function App() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 style={{ fontFamily: v('font-display'), fontSize: 40, fontWeight: 600, margin: 0, letterSpacing: '-0.02em' }}>Homecoming</h1>
-            <p style={{ color: v('cite'), marginTop: 2, fontSize: 15 }}>Nothing enters the care plan until you confirm it.</p>
+            <p style={{ color: v('cite'), marginTop: 2, fontSize: 15 }}>
+              {userName ? `Hi ${userName} — ` : ''}Nothing enters the care plan until you confirm it.
+            </p>
           </div>
           <button onClick={() => supabase.auth.signOut()} style={ghostBtn}>Log out</button>
         </div>
@@ -132,23 +167,27 @@ export default function App() {
                      fontFamily: v('font-body'), lineHeight: 1.6, resize: 'vertical' }} />
           <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={handleExtract} disabled={loading}
-              style={{ padding: '11px 22px', fontSize: 15, cursor: 'pointer',
-                       background: v('ink'), color: '#fff', border: 'none', borderRadius: 10,
-                       fontFamily: v('font-body'), fontWeight: 500 }}>
+              style={{ padding: '11px 22px', fontSize: 15, cursor: 'pointer', background: v('ink'), color: '#fff',
+                       border: 'none', borderRadius: 10, fontFamily: v('font-body'), fontWeight: 500 }}>
               {loading ? 'Reading the document…' : 'Extract care plan'}
             </button>
-            <label style={{ padding: '11px 22px', fontSize: 15, cursor: 'pointer',
-                     background: v('card'), color: v('ink'), border: `1px solid ${v('border')}`,
-                     borderRadius: 10, fontFamily: v('font-body'), fontWeight: 500 }}>
+            <label style={{ padding: '11px 22px', fontSize: 15, cursor: 'pointer', background: v('card'),
+                     color: v('ink'), border: `1px solid ${v('border')}`, borderRadius: 10,
+                     fontFamily: v('font-body'), fontWeight: 500 }}>
               Upload a PDF
               <input type="file" accept="application/pdf" onChange={handlePdfUpload} style={{ display: 'none' }} />
+            </label>
+            <label style={{ padding: '11px 22px', fontSize: 15, cursor: 'pointer', background: v('card'),
+                     color: v('ink'), border: `1px solid ${v('border')}`, borderRadius: 10,
+                     fontFamily: v('font-body'), fontWeight: 500 }}>
+              Upload a photo
+              <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
             </label>
           </div>
           {error && <p style={{ color: v('flag'), fontSize: 14 }}>{error}</p>}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 32 }}>
-
           <section>
             <h2 style={colHead}>To review · {candidates.length}</h2>
             {candidates.map((item) => {
@@ -205,9 +244,21 @@ export default function App() {
                 </div>
                 <h3 style={cardTitle}>{titleOf(item)}</h3>
                 <p style={cardBody}>{item.payload?.plain_language}</p>
-                <button onClick={() => addReminder(item)} style={{ ...actBtn('cite'), marginTop: 8, fontSize: 12 }}>
-                  + Remind me
-                </button>
+                {reminderFor?.id === item.id ? (
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input type="datetime-local" value={reminderWhen}
+                      onChange={(e) => setReminderWhen(e.target.value)}
+                      style={{ fontSize: 13, padding: 6, borderRadius: 6, border: `1px solid ${v('border')}`,
+                               fontFamily: v('font-body') }} />
+                    <button onClick={saveReminder} style={{ ...actBtn('verify'), fontSize: 12 }}>Save</button>
+                    <button onClick={() => { setReminderFor(null); setReminderWhen('') }}
+                      style={{ ...actBtn('cite'), fontSize: 12 }}>Cancel</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setReminderFor(item)} style={{ ...actBtn('cite'), marginTop: 8, fontSize: 12 }}>
+                    + Remind me
+                  </button>
+                )}
                 {reminders.filter((r) => r.plan_item_id === item.id).map((r) => (
                   <div key={r.id} style={{ fontSize: 12, color: v('attend'), marginTop: 4, fontFamily: v('font-mono') }}>
                     ⏰ {new Date(r.remind_at).toLocaleString()}

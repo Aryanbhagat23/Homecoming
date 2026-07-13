@@ -49,15 +49,17 @@ export default async (req) => {
     return Response.json({ error: "POST only" }, { status: 405 });
   }
 
-  let pages;
+ let pages, image;
   try {
-    ({ pages } = await req.json());
-    if (!Array.isArray(pages) || pages.length === 0) throw new Error("no pages");
+    const body = await req.json();
+    pages = body.pages;
+    image = body.image; // { media_type, data } base64, optional
+    if (!image && (!Array.isArray(pages) || pages.length === 0)) throw new Error("no input");
   } catch {
-    return Response.json({ error: "Body must be { pages: [{page, text}] }" }, { status: 400 });
+    return Response.json({ error: "Body must be { pages } or { image }" }, { status: 400 });
   }
 
-  const docText = pages
+  const docText = (pages || [])
     .map((p) => `--- PAGE ${p.page} ---\n${p.text}`)
     .join("\n\n");
 
@@ -73,7 +75,15 @@ export default async (req) => {
         model: "claude-sonnet-4-6",
         max_tokens: 4000,
         system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: docText }],
+        messages: [{
+          role: "user",
+          content: image
+            ? [
+                { type: "image", source: { type: "base64", media_type: image.media_type, data: image.data } },
+                { type: "text", text: "This is a photo of a discharge document. Extract items as instructed. If the image is a handwritten note, set confidence to \"low\" for every item because handwriting is easy to misread." },
+              ]
+            : docText,
+        }],
       }),
     });
 
@@ -96,12 +106,12 @@ export default async (req) => {
     }
 
     // ---- Anti-hallucination gate ----
-    const pageMap = new Map(pages.map((p) => [Number(p.page), p.text]));
+    const pageMap = new Map((pages || []).map((p) => [Number(p.page), p.text]));
     const items = (parsed.items || []).filter((item) => {
       if (!CATEGORIES.has(item.category)) return false;
+      if (image) return true; // image input: no page text to ground against
       const pageText = pageMap.get(Number(item.source_page));
       if (!pageText || !item.source_snippet) return false;
-      // snippet must genuinely appear in the cited page (whitespace-normalized)
       const norm = (s) => s.replace(/\s+/g, " ").trim().toLowerCase();
       return norm(pageText).includes(norm(item.source_snippet));
     });
