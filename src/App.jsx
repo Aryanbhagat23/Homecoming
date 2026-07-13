@@ -3,7 +3,9 @@ import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext.jsx'
 import { useCircle } from './useCircle.js'
 import Login from './Login.jsx'
+import FridgeSheet from './FridgeSheet.jsx'
 import { extractPdfPages } from './pdfText.js'
+import { downloadFhir } from './fhir.js'
 
 const SAMPLE = `MEDICATIONS AT DISCHARGE. 1. Metoprolol tartrate 25 mg by mouth twice daily - NEW. Take with food. 2. Warfarin 2.5 mg by mouth daily - NEW. INR check in 5 days. 5. DISCONTINUE ibuprofen. WARNING: Call your doctor if weight gain of more than 3 pounds in one day.`
 
@@ -17,17 +19,25 @@ export default function App() {
   const [text, setText] = useState(SAMPLE)
   const [candidates, setCandidates] = useState([])
   const [plan, setPlan] = useState([])
+  const [reminders, setReminders] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState('')
+  const [showFridge, setShowFridge] = useState(false)
 
-  useEffect(() => { if (circleId) loadPlan() }, [circleId])
+  useEffect(() => { if (circleId) { loadPlan(); loadReminders() } }, [circleId])
 
   async function loadPlan() {
     const { data } = await supabase.from('plan_items').select('*')
       .eq('circle_id', circleId).order('confirmed_at', { ascending: false })
     if (data) setPlan(data)
+  }
+
+  async function loadReminders() {
+    const { data } = await supabase.from('reminders').select('*')
+      .eq('circle_id', circleId).order('remind_at', { ascending: true })
+    if (data) setReminders(data)
   }
 
   if (authLoading) return <Center>Loading…</Center>
@@ -62,7 +72,6 @@ export default function App() {
       if (data.error) setError("Couldn't read this as a discharge document. Try a hospital discharge packet or medication list.")
       else if ((data.items || []).length === 0) setError("No medications, appointments, or tasks found in this document.")
       else setCandidates((data.items || []).map((it, i) => ({ ...it, _id: 'c' + i })))
-      // also show the extracted text so the user can see what was read
       setText(pages.map((p) => p.text).join('\n\n'))
     } catch (err) {
       setError('Could not read PDF: ' + String(err))
@@ -79,6 +88,19 @@ export default function App() {
     if (error) { setError('Could not save: ' + error.message); return }
     setCandidates((c) => c.filter((x) => x._id !== item._id))
     loadPlan()
+  }
+
+  async function addReminder(planItem) {
+    const when = prompt('Remind me at (YYYY-MM-DD HH:MM), e.g. 2026-07-20 09:00')
+    if (!when) return
+    const remind_at = new Date(when.replace(' ', 'T'))
+    if (isNaN(remind_at)) { setError('Could not understand that date/time.'); return }
+    const { error } = await supabase.from('reminders').insert({
+      plan_item_id: planItem.id, circle_id: circleId,
+      remind_at: remind_at.toISOString(), channel: 'in_app',
+    })
+    if (error) { setError('Could not save reminder: ' + error.message); return }
+    loadReminders()
   }
 
   const rejectItem = (item) => setCandidates((c) => c.filter((x) => x._id !== item._id))
@@ -108,18 +130,20 @@ export default function App() {
             style={{ width: '100%', marginTop: 6, fontSize: 14, padding: 14, boxSizing: 'border-box',
                      border: `1px solid ${v('border')}`, borderRadius: 10, background: v('card'),
                      fontFamily: v('font-body'), lineHeight: 1.6, resize: 'vertical' }} />
-          <button onClick={handleExtract} disabled={loading}
-            style={{ marginTop: 12, padding: '11px 22px', fontSize: 15, cursor: 'pointer',
-                     background: v('ink'), color: '#fff', border: 'none', borderRadius: 10,
-                     fontFamily: v('font-body'), fontWeight: 500 }}>
-            {loading ? 'Reading the document…' : 'Extract care plan'}
-          </button>
-          <label style={{ marginLeft: 12, padding: '11px 22px', fontSize: 15, cursor: 'pointer',
-                   background: v('card'), color: v('ink'), border: `1px solid ${v('border')}`,
-                   borderRadius: 10, fontFamily: v('font-body'), fontWeight: 500, display: 'inline-block' }}>
-            Upload a PDF
-            <input type="file" accept="application/pdf" onChange={handlePdfUpload} style={{ display: 'none' }} />
-          </label>
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={handleExtract} disabled={loading}
+              style={{ padding: '11px 22px', fontSize: 15, cursor: 'pointer',
+                       background: v('ink'), color: '#fff', border: 'none', borderRadius: 10,
+                       fontFamily: v('font-body'), fontWeight: 500 }}>
+              {loading ? 'Reading the document…' : 'Extract care plan'}
+            </button>
+            <label style={{ padding: '11px 22px', fontSize: 15, cursor: 'pointer',
+                     background: v('card'), color: v('ink'), border: `1px solid ${v('border')}`,
+                     borderRadius: 10, fontFamily: v('font-body'), fontWeight: 500 }}>
+              Upload a PDF
+              <input type="file" accept="application/pdf" onChange={handlePdfUpload} style={{ display: 'none' }} />
+            </label>
+          </div>
           {error && <p style={{ color: v('flag'), fontSize: 14 }}>{error}</p>}
         </div>
 
@@ -164,7 +188,15 @@ export default function App() {
           </section>
 
           <section>
-            <h2 style={colHead}>Confirmed care plan · {plan.length}</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h2 style={{ ...colHead, marginBottom: 0 }}>Confirmed care plan · {plan.length}</h2>
+              {plan.length > 0 && (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setShowFridge(true)} style={actBtn('ink')}>Print fridge sheet</button>
+                  <button onClick={() => downloadFhir(plan)} style={actBtn('cite')}>Export FHIR</button>
+                </div>
+              )}
+            </div>
             {plan.map((item) => (
               <article key={item.id} className="stamp" style={card('verify')}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -173,12 +205,22 @@ export default function App() {
                 </div>
                 <h3 style={cardTitle}>{titleOf(item)}</h3>
                 <p style={cardBody}>{item.payload?.plain_language}</p>
+                <button onClick={() => addReminder(item)} style={{ ...actBtn('cite'), marginTop: 8, fontSize: 12 }}>
+                  + Remind me
+                </button>
+                {reminders.filter((r) => r.plan_item_id === item.id).map((r) => (
+                  <div key={r.id} style={{ fontSize: 12, color: v('attend'), marginTop: 4, fontFamily: v('font-mono') }}>
+                    ⏰ {new Date(r.remind_at).toLocaleString()}
+                  </div>
+                ))}
               </article>
             ))}
             {plan.length === 0 && <p style={emptyMsg}>Confirmed items will appear here, ready for the fridge.</p>}
           </section>
         </div>
       </div>
+
+      {showFridge && <FridgeSheet plan={plan} onClose={() => setShowFridge(false)} />}
     </div>
   )
 }
