@@ -1,0 +1,46 @@
+SYNTHETIC TEST DOCUMENT — NOT A REAL PATIENT
+Use this to test extraction during development. Modeled on typical discharge summary structure.
+
+--- PAGE 1 ---
+MEMORIAL GENERAL HOSPITAL
+DISCHARGE SUMMARY
+Patient: DOE, MARGARET (TEST) | DOB: 01/01/1950 | MRN: 000000
+Admission: 06/28/2026  Discharge: 07/02/2026
+Discharge Diagnosis: Acute decompensated heart failure; Atrial fibrillation (new)
+
+--- PAGE 2 ---
+HOSPITAL COURSE
+Patient admitted with shortness of breath and lower extremity edema. Treated with IV
+diuretics with good response. New atrial fibrillation noted on telemetry; anticoagulation
+initiated. Discharged home in stable condition with family support.
+
+--- PAGE 3 ---
+DIET AND ACTIVITY
+Low sodium diet (2 grams per day). Daily weights every morning after urination, before
+breakfast, in the same clothing. Record weight in a log. Activity as tolerated; avoid
+heavy lifting over 10 pounds for 2 weeks.
+
+--- PAGE 4 ---
+MEDICATIONS AT DISCHARGE
+Continue home medications except as noted below.
+1. Metoprolol tartrate 25 mg by mouth twice daily — NEW. Take with food.
+2. Warfarin 2.5 mg by mouth daily — NEW. INR check in 5 days.
+3. Furosemide 40 mg by mouth every morning — CHANGED from 20 mg.
+4. Lisinopril 10 mg by mouth daily — CONTINUE.
+5. DISCONTINUE ibuprofen. Do not take NSAIDs while on warfarin.
+
+--- PAGE 5 ---
+FOLLOW-UP APPOINTMENTS
+1. Primary care (Dr. Patel): within 7 days of discharge. Call 555-0100 to schedule.
+2. Cardiology (Dr. Nguyen): 07/16/2026 at 10:30 AM, Heart Center, 2nd floor.
+3. Anticoagulation clinic: INR blood draw on 07/07/2026, walk-in lab, main campus.
+
+--- PAGE 6 ---
+WARNING SIGNS — CALL YOUR DOCTOR IF:
+- Weight gain of more than 3 pounds in one day or 5 pounds in one week
+- Increased swelling in legs or abdomen
+- Shortness of breath at rest or waking up at night short of breath
+CALL 911 OR GO TO THE EMERGENCY ROOM IF:
+- Chest pain lasting more than a few minutes
+- Severe difficulty breathing
+- Signs of serious bleeding: blood in urine or stool, vomiting blood, uncontrolled nosebleed
