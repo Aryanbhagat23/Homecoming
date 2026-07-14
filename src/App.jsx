@@ -41,7 +41,8 @@ export default function App() {
 
   async function loadPlan() {
     const { data } = await supabase.from('plan_items').select('*')
-      .eq('circle_id', circleId).order('confirmed_at', { ascending: false })
+      .eq('circle_id', circleId).eq('active', true)
+      .order('confirmed_at', { ascending: false })
     if (data) setPlan(data)
   }
   async function loadReminders() {
@@ -150,6 +151,13 @@ export default function App() {
     const link = `${window.location.origin}/?share=${data.share_token}`
     await navigator.clipboard.writeText(link)
     alert('Share link copied! Anyone with this link can view (not edit) the confirmed care plan.')
+  }
+async function removeItem(item) {
+    if (!confirm(`Remove "${titleOf(item)}" from the care plan?`)) return
+    const { error } = await supabase.from('plan_items')
+      .update({ active: false }).eq('id', item.id)
+    if (error) { setError('Could not remove: ' + error.message); return }
+    loadPlan()
   }
 
   async function handleAsk() {
@@ -299,8 +307,13 @@ export default function App() {
               <article key={item.id} className="stamp" style={card('verify')}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={pill('verify')}>{item.category}</span>
-                  <span style={{ fontFamily: v('font-mono'), fontSize: 11, color: v('verify'), fontWeight: 500 }}>✓ confirmed</span>
-                </div>
+<span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+  <span style={{ fontFamily: v('font-mono'), fontSize: 11, color: v('verify'), fontWeight: 500 }}>✓ confirmed</span>
+  <button onClick={() => removeItem(item)}
+    style={{ background: 'none', border: 'none', cursor: 'pointer', color: v('cite'),
+             fontSize: 12, padding: 0, fontFamily: v('font-body') }}
+    title="Remove from care plan">✕</button>
+</span>                </div>
                 <h3 style={cardTitle}>{titleOf(item)}</h3>
                 <p style={cardBody}>{item.payload?.plain_language}</p>
                 {reminderFor?.id === item.id ? (
