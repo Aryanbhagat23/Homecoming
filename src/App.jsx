@@ -7,6 +7,7 @@ import Landing from './Landing.jsx'
 import FridgeSheet from './FridgeSheet.jsx'
 import { extractPdfPages } from './pdfText.js'
 import { downloadFhir } from './fhir.js'
+import Resources from './Resources.jsx'
 
 const SAMPLE = `MEDICATIONS AT DISCHARGE. 1. Metoprolol tartrate 25 mg by mouth twice daily - NEW. Take with food. 2. Warfarin 2.5 mg by mouth daily - NEW. INR check in 5 days. 5. DISCONTINUE ibuprofen. WARNING: Call your doctor if weight gain of more than 3 pounds in one day.`
 
@@ -29,6 +30,9 @@ export default function App() {
   const [showFridge, setShowFridge] = useState(false)
   const [reminderFor, setReminderFor] = useState(null)
   const [reminderWhen, setReminderWhen] = useState('')
+  const [question, setQuestion] = useState('')
+  const [asking, setAsking] = useState(false)
+  const [answer, setAnswer] = useState(null)   // { answer, sources }
 
   useEffect(() => { if (circleId) { loadPlan(); loadReminders() } }, [circleId])
 
@@ -136,6 +140,24 @@ export default function App() {
     setReminderFor(null); setReminderWhen(''); loadReminders()
   }
 
+  async function handleAsk() {
+    if (!question.trim()) return
+    setAsking(true); setAnswer(null)
+    try {
+      const res = await fetch('/.netlify/functions/ask', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ question }),
+      })
+      const data = await res.json()
+      if (data.error) setAnswer({ answer: 'Something went wrong. Please try again.', sources: [] })
+      else setAnswer(data)
+    } catch {
+      setAnswer({ answer: 'Something went wrong. Please try again.', sources: [] })
+    }
+    setAsking(false)
+  }
+
+
   const rejectItem = (item) => setCandidates((c) => c.filter((x) => x._id !== item._id))
   const startEdit = (item) => { setEditingId(item._id); setEditText(item.payload?.plain_language || '') }
   const saveEdit = (item) => {
@@ -186,6 +208,30 @@ export default function App() {
           </div>
           {error && <p style={{ color: v('flag'), fontSize: 14 }}>{error}</p>}
         </div>
+
+        {/* Dashboard summary strip */}
+        {(plan.length > 0 || candidates.length > 0) && (
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
+            {[
+              { label: 'Medications in plan',
+                value: plan.filter(c => c.category === 'medication').length },
+              { label: 'Appointments & tasks',
+                value: plan.filter(c => c.category === 'appointment' || c.category === 'task').length },
+              { label: 'Warnings to watch',
+                value: plan.filter(c => c.category === 'warning').length },
+              { label: 'Awaiting your review',
+                value: candidates.length, highlight: candidates.length > 0 },
+            ].map((s, i) => (
+              <div key={i} style={{ flex: '1 1 140px', padding: '14px 18px', borderRadius: 12,
+                     background: v('card'), border: `1px solid ${s.highlight ? '#d97706' : v('border')}` }}>
+                <div style={{ fontSize: 26, fontWeight: 700, fontFamily: v('font-body'),
+                       color: s.highlight ? '#d97706' : v('ink') }}>{s.value}</div>
+                <div style={{ fontSize: 12, color: '#777', marginTop: 2,
+                       textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 32 }}>
           <section>
@@ -269,6 +315,45 @@ export default function App() {
             {plan.length === 0 && <p style={emptyMsg}>Confirmed items will appear here, ready for the fridge.</p>}
           </section>
         </div>
+        {/* Ask a care question — answers only from trusted guidance */}
+        <div style={{ marginTop: 48 }}>
+          <h2 style={{ fontFamily: v('font-display'), fontSize: 26, fontWeight: 600, margin: 0 }}>
+            Ask a care question
+          </h2>
+          <p style={{ color: v('cite'), fontSize: 14, marginTop: 4 }}>
+            Answers come only from trusted caregiver guidance, with sources. Not medical advice.
+          </p>
+          <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+            <input value={question} onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
+              placeholder="e.g. What should I do if we miss a dose?"
+              style={{ flex: 1, fontSize: 14, padding: '11px 14px', border: `1px solid ${v('border')}`,
+                       borderRadius: 10, background: v('card'), fontFamily: v('font-body') }} />
+            <button onClick={handleAsk} disabled={asking}
+              style={{ padding: '11px 22px', fontSize: 15, cursor: 'pointer', background: v('ink'), color: '#fff',
+                       border: 'none', borderRadius: 10, fontFamily: v('font-body'), fontWeight: 500 }}>
+              {asking ? 'Looking…' : 'Ask'}
+            </button>
+          </div>
+          {answer && (
+            <div style={{ marginTop: 14, background: v('card'), border: `1px solid ${v('border')}`,
+                          borderLeft: `4px solid ${v('cite')}`, borderRadius: 12, padding: 16 }}>
+              <p style={{ fontSize: 14, lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{answer.answer}</p>
+              {answer.sources?.length > 0 && (
+                <div style={{ marginTop: 10, fontSize: 12.5, color: v('cite') }}>
+                  Sources:{' '}
+                  {answer.sources.map((s, i) => (
+                    <span key={s.id}>
+                      <a href={s.url} target="_blank" rel="noreferrer" style={{ color: v('cite') }}>{s.source}</a>
+                      {i < answer.sources.length - 1 ? ' · ' : ''}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <Resources />
       </div>
 
       {showFridge && <FridgeSheet plan={plan} onClose={() => setShowFridge(false)} />}

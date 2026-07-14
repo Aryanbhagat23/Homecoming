@@ -1,0 +1,28 @@
+// Trusted guidance library. Each passage is a short, plain-language summary
+// written from public guidance by the sources listed. Expand over time.
+export const GUIDANCE = [
+  { id: "meds-1", topic: "medications new prescriptions discharge pills dose",
+    source: "Medicare.gov — Caregiver Resources", url: "https://www.medicare.gov/caregivers",
+    text: "After a hospital stay, keep one single up-to-date list of every medication, including doses and times. Bring this list to every appointment. If two lists disagree, ask the pharmacist or doctor which is correct before giving anything." },
+  { id: "meds-2", topic: "medication missed dose confusion side effects pharmacy",
+    source: "Family Caregiver Alliance", url: "https://www.caregiver.org",
+    text: "If a dose is missed or you're unsure about side effects, call the pharmacy or the prescribing doctor rather than guessing. Pharmacists can answer medication questions for free and are often the fastest to reach." },
+  { id: "appt-1", topic: "follow-up appointment doctor visit schedule after discharge",
+    source: "Medicare.gov — Caregiver Resources", url: "https://www.medicare.gov/caregivers",
+    text: "Follow-up appointments after discharge matter even when the person feels fine — they're where doctors catch problems early. Schedule them within the window written on the discharge papers, and write down questions beforehand." },
+  { id: "warn-1", topic: "warning signs emergency symptoms when to call doctor 911",
+    source: "Family Caregiver Alliance", url: "https://www.caregiver.org",
+    text: "Discharge papers usually list specific warning signs to watch for. Post them somewhere visible. When a listed warning sign appears, call the number given on the discharge papers. For anything that feels like an emergency, call 911 — do not wait." },
+  { id: "home-1", topic: "home safety falls bathroom stairs equipment recovery setup",
+    source: "Eldercare Locator (ACL)", url: "https://eldercare.acl.gov",
+    text: "Simple home changes prevent many injuries during recovery: clear walking paths, good lighting, grab bars near the toilet and shower, and keeping daily items within easy reach. Your local Area Agency on Aging can help arrange equipment." },
+  { id: "self-1", topic: "caregiver stress burnout tired overwhelmed respite help support",
+    source: "Eldercare Locator (ACL)", url: "https://eldercare.acl.gov",
+    text: "Caregiver exhaustion is common and real. Respite care — short-term relief where someone else takes over for hours or days — exists in most counties. Call the Eldercare Locator at 1-800-677-1116 to find respite options near you." },
+  { id: "cost-1", topic: "cost insurance medicare coverage home health equipment pay",
+    source: "Medicare.gov — Caregiver Resources", url: "https://www.medicare.gov/caregivers",
+    text: "Medicare may cover home health visits, medical equipment, and some follow-up services after a hospital stay if a doctor orders them. Ask the discharge planner or doctor what qualifies before paying out of pocket." },
+  { id: "food-1", topic: "meals nutrition eating appetite food delivery",
+    source: "Eldercare Locator (ACL)", url: "https://eldercare.acl.gov",
+    text: "If cooking or appetite is a struggle during recovery, home-delivered meal programs like Meals on Wheels operate in most areas. The Eldercare Locator or 211 can connect you to local meal services." },
+]
