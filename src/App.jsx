@@ -138,7 +138,8 @@ export default function App() {
     if (isNaN(remind_at)) { setError('That date/time did not work.'); return }
     const { error } = await supabase.from('reminders').insert({
       plan_item_id: reminderFor.id, circle_id: circleId,
-      remind_at: remind_at.toISOString(), channel: 'in_app',
+      remind_at: remind_at.toISOString(), channel: 'email',
+      notify_email: session.user.email,
     })
     if (error) { setError('Could not save reminder: ' + error.message); return }
     setReminderFor(null); setReminderWhen(''); loadReminders()
