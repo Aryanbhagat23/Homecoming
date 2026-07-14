@@ -18,6 +18,7 @@
         "npm:@vitejs/plugin-react@^6.0.3",
         "npm:autoprefixer@^10.5.2",
         "npm:oxlint@^1.71.0",
+        "npm:pdfjs-dist@^6.1.200",
         "npm:postcss@^8.5.19",
         "npm:react-dom@^19.2.7",
         "npm:react-router-dom@^7.18.1",

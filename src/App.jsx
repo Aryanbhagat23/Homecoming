@@ -8,6 +8,7 @@ import FridgeSheet from './FridgeSheet.jsx'
 import { extractPdfPages } from './pdfText.js'
 import { downloadFhir } from './fhir.js'
 import Resources from './Resources.jsx'
+import SharedPlan from './SharedPlan.jsx'
 
 const SAMPLE = `MEDICATIONS AT DISCHARGE. 1. Metoprolol tartrate 25 mg by mouth twice daily - NEW. Take with food. 2. Warfarin 2.5 mg by mouth daily - NEW. INR check in 5 days. 5. DISCONTINUE ibuprofen. WARNING: Call your doctor if weight gain of more than 3 pounds in one day.`
 
@@ -15,6 +16,8 @@ const titleOf = (i) => i.payload?.name || i.payload?.title || i.payload?.watch_f
 const v = (name) => `var(--${name})`
 
 export default function App() {
+  const shareToken = new URLSearchParams(window.location.search).get('share')
+  if (shareToken) return <SharedPlan token={shareToken} />
   const { session, loading: authLoading } = useAuth()
   const { circleId, loading: circleLoading } = useCircle(session)
 
@@ -138,6 +141,15 @@ export default function App() {
     })
     if (error) { setError('Could not save reminder: ' + error.message); return }
     setReminderFor(null); setReminderWhen(''); loadReminders()
+  }
+
+  async function copyShareLink() {
+    const { data } = await supabase.from('care_circles')
+      .select('share_token').eq('id', circleId).single()
+    if (!data?.share_token) { setError('Could not create share link.'); return }
+    const link = `${window.location.origin}/?share=${data.share_token}`
+    await navigator.clipboard.writeText(link)
+    alert('Share link copied! Anyone with this link can view (not edit) the confirmed care plan.')
   }
 
   async function handleAsk() {
@@ -279,6 +291,7 @@ export default function App() {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => setShowFridge(true)} style={actBtn('ink')}>Print fridge sheet</button>
                   <button onClick={() => downloadFhir(plan)} style={actBtn('cite')}>Export FHIR</button>
+                  <button onClick={copyShareLink} style={actBtn('cite')}>Share with family</button>
                 </div>
               )}
             </div>
