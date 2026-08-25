@@ -19,11 +19,12 @@
 |---|---|
 | **Deployed application** | https://homecoming-care.netlify.app/ |
 | **Demo video (3–5 min)** | _TBD — link here_ |
-| **Pitch deck** | [`docs/pitch-deck.pdf`](./docs/pitch-deck.pdf) |
+| **Pitch deck (PDF)** | [`docs/Homecoming-Pitch-Deck.pdf`](./docs/Homecoming-Pitch-Deck.pdf) |
+| **Pitch deck (PowerPoint)** | [`docs/pitch-deck.pptx`](./docs/pitch-deck.pptx) |
 | **One-page project summary** | [`docs/one-page-summary.pptx`](./docs/one-page-summary.pptx) |
 | **Project plan** | [`plan.md`](./plan.md) |
 | **System design & architecture** | [`design.md`](./design.md) |
-| **Architecture diagram** | [`docs/architecture.png`](./docs/architecture.png) |
+| **Architecture diagram** | [`docs/architecture.png`](./docs/architecture.png) | 
 | **Security notes** | [Security](#security) (below) |
 | **Testing data policy** | [Testing Data Policy](#testing-data-policy) (below) |
 | **Synthetic test data** | [`test-data/synthetic-discharge.txt`](./test-data/synthetic-discharge.txt) |
