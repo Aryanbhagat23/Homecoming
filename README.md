@@ -10,6 +10,25 @@
 **Program:** FAU AI HootCamp Summer 2026 — Build Phase
 **Selected Problem:** ACL Caregiver AI Prize Challenge (Administration for Community Living, U.S. Department of Health and Human Services)
 
+
+---
+
+## Artifact Index
+
+| Artifact | Link |
+|---|---|
+| **Deployed application** | https://homecoming-care.netlify.app/ |
+| **Demo video (3–5 min)** | _TBD — link here_ |
+| **Pitch deck** | [`docs/pitch-deck.pdf`](./docs/pitch-deck.pdf) |
+| **One-page project summary** | [`docs/one-page-summary.pptx`](./docs/one-page-summary.pptx) |
+| **Project plan** | [`plan.md`](./plan.md) |
+| **System design & architecture** | [`design.md`](./design.md) |
+| **Architecture diagram** | [`docs/architecture.png`](./docs/architecture.png) |
+| **Security notes** | [Security](#security) (below) |
+| **Testing data policy** | [Testing Data Policy](#testing-data-policy) (below) |
+| **Synthetic test data** | [`test-data/synthetic-discharge.txt`](./test-data/synthetic-discharge.txt) |
+
+---
 ---
 
 ## Project Description
