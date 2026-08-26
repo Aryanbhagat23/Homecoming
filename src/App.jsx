@@ -60,15 +60,39 @@ export default function App() {
   }
   if (circleLoading) return <Center>Setting up your care circle…</Center>
 
+    // Split pasted text into pages. Uses "--- PAGE n ---" markers when present,
+  // otherwise chunks by size so a single model call never carries the whole document.
+  function splitIntoPages(raw) {
+    const parts = raw.split(/^[ \t]*-{2,}[ \t]*PAGE[ \t]+(\d+)[ \t]*-{2,}[ \t]*$/gim)
+    if (parts.length >= 3) {
+      const pages = []
+      for (let i = 1; i < parts.length; i += 2) {
+        const body = (parts[i + 1] || '').trim()
+        if (body) pages.push({ page: Number(parts[i]), text: body })
+      }
+      if (pages.length) return pages
+    }
+    const CHUNK = 3500
+    if (raw.length <= CHUNK) return [{ page: 1, text: raw }]
+    const pages = []
+    for (let i = 0; i < raw.length; i += CHUNK) {
+      pages.push({ page: pages.length + 1, text: raw.slice(i, i + CHUNK) })
+    }
+    return pages
+  }
+
   async function handleExtract() {
+    if (!text.trim()) { setError('Paste a discharge document first.'); return }
     setLoading(true); setError(''); setCandidates([])
     try {
+      const pages = splitIntoPages(text)
       const res = await fetch('/.netlify/functions/extract', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ pages: [{ page: 1, text }] }),
+        body: JSON.stringify({ pages }),
       })
       const data = await res.json()
       if (data.error) setError(data.error)
+      else if ((data.items || []).length === 0) setError('No medications, appointments, or tasks found in this text.')
       else setCandidates((data.items || []).map((it, i) => ({ ...it, _id: 'c' + i })))
     } catch (e) { setError(String(e)) }
     setLoading(false)
