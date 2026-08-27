@@ -5,7 +5,7 @@
 **Z-Number:** Z23887703
 **FAU Email:** bhagata2025@fau.edu
 **Deployed App:** (https://homecoming-care.netlify.app/)
-**Demo Video:** 
+**Demo Video:** https://youtu.be/a8s8b5B8jwk
 
 **Program:** FAU AI HootCamp Summer 2026 — Build Phase
 **Selected Problem:** ACL Caregiver AI Prize Challenge (Administration for Community Living, U.S. Department of Health and Human Services)
@@ -18,7 +18,7 @@
 | Artifact | Link |
 |---|---|
 | **Deployed application** | https://homecoming-care.netlify.app/ |
-| **Demo video (3–5 min)** | _TBD — link here_ |
+| **Demo video (3–5 min)** | https://youtu.be/a8s8b5B8jwk |
 | **Pitch deck (PDF)** | [`docs/Homecoming-Pitch-Deck.pdf`](./docs/Homecoming-Pitch-Deck.pdf) |
 | **Pitch deck (PowerPoint)** | [`docs/pitch-deck.pptx`](./docs/pitch-deck.pptx) |
 | **One-page project summary** | [`docs/one-page-summary.pptx`](./docs/one-page-summary.pptx) |
